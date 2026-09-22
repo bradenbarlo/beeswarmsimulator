@@ -992,6 +992,22 @@ function BeeSwarmSimulator(DATA){
         player.updateUI()
     }
 
+    document.getElementById('hackSetMovement').onclick=function(){
+        let walkSpeed=Number(document.getElementById('hackWalkSpeed').value)
+        let jumpPower=Number(document.getElementById('hackJumpPower').value)
+        if(Number.isFinite(walkSpeed)&&walkSpeed>=0) player.walkSpeed=walkSpeed
+        if(Number.isFinite(jumpPower)&&jumpPower>=0) player.jumpPower=jumpPower
+    }
+
+    document.getElementById('hackFly').onclick=function(){
+        player.flyEnabled=!player.flyEnabled
+        this.textContent='Fly: '+(player.flyEnabled?'On':'Off')
+        if(player.flyEnabled){
+            player.grounded=false
+            player.body.velocity.set(0,0,0)
+        }
+    }
+
     document.getElementById('hackAutoCollectCoins').onclick=function(){
         player.autoCollectCoins=!player.autoCollectCoins
         this.textContent='Auto Collect Coins: '+(player.autoCollectCoins?'On':'Off')
@@ -26611,7 +26627,24 @@ function BeeSwarmSimulator(DATA){
             
             let s=dt*out.walkSpeed,cdir=out.cosYaw,sdir=out.sinYaw
             
-            if(!out.currentNPC&&!out.currentShop&&!out.removeAirFrictionUntilGrounded&&!out.isGliding){
+            if(out.flyEnabled){
+                let dx=0,dz=0,c=0
+
+                if(user.keys.d){dx=cdir;dz=sdir;c=1}
+                if(user.keys.w){dx+=sdir;dz-=cdir;c++}
+                if(user.keys.a){dx-=cdir;dz-=sdir;c++}
+                if(user.keys.s){dx-=sdir;dz+=cdir;c++}
+                if(c>1){dx*=0.707106781;dz*=0.707106781}
+                if(joystickMovement[0]||joystickMovement[1]){
+                    dx+=joystickMovement[0]*cdir-joystickMovement[1]*sdir
+                    dz+=joystickMovement[0]*sdir+joystickMovement[1]*cdir
+                }
+                out.body.position.x+=dx*s
+                out.body.position.z+=dz*s
+                out.body.position.y+=(user.keys[' ']?s:0)-(user.keys.shift?s:0)
+                out.body.velocity.set(0,0,0)
+                out.grounded=false
+            } else if(!out.currentNPC&&!out.currentShop&&!out.removeAirFrictionUntilGrounded&&!out.isGliding){
                 
                 let dx=0,dz=0,c=0
                 
@@ -26700,7 +26733,7 @@ function BeeSwarmSimulator(DATA){
                 out.body.velocity.y=out.gliderFall
             }
             
-            if(out.grounded){
+            if(!out.flyEnabled&&out.grounded){
                 
                 if(out.isGliding){
                     
@@ -26718,7 +26751,7 @@ function BeeSwarmSimulator(DATA){
                 out.body.velocity.x/=dt*out.friction+1
                 out.body.velocity.z/=dt*out.friction+1
                 
-            } else if(!out.removeAirFrictionUntilGrounded){
+            } else if(!out.flyEnabled&&!out.removeAirFrictionUntilGrounded){
                 
                 out.body.position.y+=0.001
 
